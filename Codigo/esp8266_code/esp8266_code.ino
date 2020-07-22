@@ -2,8 +2,8 @@
 #include "Ubidots.h"
 
 // set the LCD number of columns and rows
-#define lcdColumns = 16;
-#define lcdRows = 2;
+#define lcdColumns 16
+#define lcdRows 2
 LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 
 //servo motor
@@ -364,4 +364,3 @@ int receive(void){
     return NOTHING;
   }
 }
-
