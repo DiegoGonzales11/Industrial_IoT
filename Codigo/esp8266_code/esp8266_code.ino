@@ -64,6 +64,9 @@ Ubidots client(TOKEN);
 #define SMALL 1
 #define NO_BOX  0
 
+#define SW_ON  "sw_on"
+#define SW_OFF "sw_off"
+
 char *msg1 = "Welcome to";
 char *msg2 = "the factory";
 char *msg3 = "Please wait";
@@ -109,13 +112,19 @@ int flag_servo = 0; //1=big_box y 0 = small_box
 int flag_on = 0;
 int flag_off = 0;
 
+int i=0;
+
 void setup(){
   pin_configuration();
   LCD_init();
+  Serial.println("\n\ngo\n\n");
 }
 
 void loop(){
-  if(factory_state = ON){
+  Serial.print("factp state: ");
+  Serial.println(factory_state);
+  if(factory_state == ON){
+    Serial.println("\n\nok\n\n");
     if(flag_on == 1){
       LCD_go();
     }
@@ -128,6 +137,7 @@ void loop(){
     pilots_control(ON);
     motor_control(ON);
 
+    /*
     int aux_box;
 
     aux_box = check_box();
@@ -140,6 +150,7 @@ void loop(){
       small_box++;
       break;
     }
+    
     
     total_box = big_box + small_box;
 
@@ -157,17 +168,39 @@ void loop(){
       motor_control(ON);
       flag_servo = 0;
     }
-
+*/
+    ///////////////////////////
+    
+    big_box = i;
+    small_box = i+1;
+    total_box = big_box + small_box;
+    i++;
+    ///////////////////////////
+    
     send(total_box,ubidot_total);
     send(big_box,ubidot_big);
     send(small_box,ubidot_small);
+
+    Serial.println(total_box);
+    Serial.println(big_box);
+    Serial.println(small_box);
+
+
     
-    if(receive() == 0){
+    int test_ubi = receive();
+    Serial.print("factp state: ");
+    Serial.println(factory_state);
+    Serial.print("test: ");
+    Serial.println(test_ubi);
+    if(test_ubi == 0){
       factory_state = OFF;
       flag_off = ON;
     }
+    Serial.print("factp state: ");
+    Serial.println(factory_state);
   }
   else{
+    Serial.println("error");
     if(flag_off == 1){
       LCD_stop();
     }
@@ -176,6 +209,8 @@ void loop(){
     pilots_control(OFF);
     motor_control(OFF);
 
+    delay(1000);
+    
     if(receive() == 1){
       factory_state = ON;
       flag_on = ON;
@@ -185,9 +220,9 @@ void loop(){
 
 void pin_configuration(void){
   //Serial config
-  Serial.begin(96000);
+  Serial.begin(9600);
   //Wifi config
-  client.wifiConnect(WIFISSID, PASSWORD);
+  //client.wifiConnect(WIFISSID, PASSWORD);
   pinMode(ULT_TRIG,OUTPUT);
   pinMode(ULT_ECHO,INPUT);
   pinMode(RELE,OUTPUT);
@@ -347,10 +382,13 @@ void send(int value, char const *ptr){
 }
 
 int receive(void){
+  Serial.println("receive");
   int sw_on, sw_off, check;
-  sw_on = client.get(DEVICE,SWITCH1);
-  sw_off = client.get(DEVICE,SWITCH2);
-
+  sw_on = client.get(DEVICE,SW_ON);
+  sw_off = client.get(DEVICE,SW_OFF);
+  Serial.println("Gotcha");
+  Serial.println(sw_on);
+  Serial.println(sw_off);
   delay(300);
 
   if((sw_off == OFF) && (sw_on == OFF)){
