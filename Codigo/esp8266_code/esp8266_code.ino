@@ -11,34 +11,39 @@ LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 //HMI
 #define SCL D1
 #define SDA D2
-//box detector
-#define LASER D3
-#define LDR A0
 //control factory
-#define RELE D4
+#define RELE D3
 //pilot
-#define RED_PILOT D5
-#define GREEN_PILOT D6
+#define RED_PILOT D4
+#define GREEN_PILOT D5
 //motor
-#define MOTOR D7
+#define MOTOR D6
 //ultrasonic
-#define ULT_ECHO  D8
-#define ULT_TRIG  D2
+#define ULT_ECHO  D7
+#define ULT_TRIG  D8
 
 //wifi
 #define DEVICE  "5ccf7fd920e1"  
 #define SWITCH1  "sw_on"
 #define SWITCH2  "sw_off"
 #define TOKEN  "BBFF-GJHTr6N0ao2jF2JaDduVNUIgHzRzRw"   
-#define WIFISSID "XIMENA"  
-#define PASSWORD "23984789"
-
-char const *totalBox = "totalBox";
-char const *bigBox = "bigBox";
-char const *smallBox = "smallBox";
-
+#define WIFISSID "CLARO-B612-1B66"  
+#define PASSWORD "1D282tF6TT"
 
 Ubidots client(TOKEN);
+//pin macros
+#define D0   16 //GPIO16 - WAKE UP
+#define D1   5  //GPIO5
+#define D2   4  //GPIO4
+#define D3   0  //GPIO0
+#define D4   2  //GPIO2 - TXD1
+
+#define D5   14 //GPIO14 - HSCLK
+#define D6   12 //GPIO12 - HMISO
+#define D7   13 //GPIO13 - HMOSI - RXD2
+#define D8   15 //GPIO15 - HCS   - TXD2
+#define RX   3  //GPIO3 - RXD0 
+#define TX   1  //GPIO1 - TXD0
 
 //control macros
 #define ON  1
@@ -52,6 +57,12 @@ Ubidots client(TOKEN);
 //servo
 #define BACK  2
 #define GO  1
+
+
+//box macros
+#define BIG 2
+#define SMALL 1
+#define NO_BOX  0
 
 char *msg1 = "Welcome to";
 char *msg2 = "the factory";
@@ -67,12 +78,17 @@ char *msg9 = "plase wait";
 
 char *msg10 = "Factory starting";
 
+char *ubidot_big = "bigBox";
+char *ubidot_small = "smallBox";
+char *ubidot_total = "totalBox";
+
 //configuration
 void pin_configuration(void);
 
 void servo_control(int state);
 int ultrasonic_control(void);
-void laser_control(int state);
+int check_ultrasonic(void);
+int check_box(void);
 void LCD_init(void);
 void LCD_stop(void);
 void LCD_go(void);
@@ -81,11 +97,9 @@ void pilots_control(int state);
 void rele_control(int state);
 void motor_control(int state);
 
-int verf_state(void);
-
 //wifi
 void send(int value, char const *ptr);
-int recieve(void);
+int receive(void);
 
 //variables globales
 int factory_state = ON;
@@ -95,7 +109,7 @@ int flag_on = 0;
 int flag_off = 0;
 
 void setup(){
-  
+  pin_configuration();
   LCD_init();
 }
 
@@ -113,20 +127,20 @@ void loop(){
     pilots_control(ON);
     motor_control(ON);
 
-    laser_control(ON);
-    delayMicroseconds(50);
-    int LDR_value;
-    LDR_value = analogRead(LDR);
-    if (LDR_value < 50){
+    int aux_box;
+
+    aux_box = check_box();
+    switch (aux_box)
+    {
+    case BIG:
       big_box++;
-      flag_servo = 1;
+      break;
+    case SMALL:
+      small_box++;
+      break;
     }
-
-    if(ultrasonic_control() == 1){
-      total_box++;
-    }
-
-    small_box = total_box - big_box;
+    
+    total_box = big_box + small_box;
 
     LCD_show(total_box,big_box,small_box);
 
@@ -143,11 +157,11 @@ void loop(){
       flag_servo = 0;
     }
 
-    send(total_box,totalBox);
-    send(big_box,bigBox);
-    send(small_box,smallBox);
+    send(total_box,ubidot_total);
+    send(big_box,ubidot_big);
+    send(small_box,ubidot_small);
     
-    if(verf_state == 0){
+    if(receive() == 0){
       factory_state = OFF;
       flag_off = ON;
     }
@@ -161,7 +175,7 @@ void loop(){
     pilots_control(OFF);
     motor_control(OFF);
 
-    if(verf_state == 1){
+    if(receive() == 1){
       factory_state = ON;
       flag_on = ON;
     }
@@ -175,8 +189,6 @@ void pin_configuration(void){
   client.wifiConnect(WIFISSID, PASSWORD);
   pinMode(ULT_TRIG,OUTPUT);
   pinMode(ULT_ECHO,INPUT);
-  pinMode(LASER,OUTPUT);
-  pinMode(LDR,INPUT);
   pinMode(RELE,OUTPUT);
   pinMode(RED_PILOT,OUTPUT);
   pinMode(GREEN_PILOT,OUTPUT);
@@ -208,22 +220,36 @@ int ultrasonic_control(void){
   int time,distancia;
   time = pulsIn(ULT_ECHO,HIGH);
   distancia = time*0,01715;
-  if(distancia > 6)
-    return 0;   //nada
+  return distancia;
+}
+
+int check_box(void){
+  int distance;
+  distance = check_ultrasonic();
+
+  if(distance < 2)
+    return BIG;
+  else if((distance >2) && (distance < 6))
+    return SMALL;
   else
-    return 1;   //box
+    return NO_BOX;
 }
-void laser_control(int state){
-  switch (state){
-  case ON:
-    digitalWrite(LASER,HIGH);
-    break;
-  
-  case ON:
-    digitalWrite(LASER,LOW);
-    break;
+
+int check_ultrasonic(void){
+  int sample[5];
+  int avrg;
+
+  for(int i=0; i<5; i++){
+    sample[i] = ultrasonic_control();
   }
+
+  for(int i=0; i<5; i++){
+    avrg = avrg + sample[i];
+  }
+
+  return avrg/5;
 }
+
 void pilots_control(int state){
   switch (state)
   {
@@ -251,12 +277,6 @@ void motor_control(int state){
     digitalWrite(MOTOR,HIGH);
   else
     digitalWrite(MOTOR,LOW);
-}
-
-int verf_state(void){
-  int state;
-  //get 0-off 1-on
-  return state;
 }
 
 void LCD_init(void){
@@ -308,16 +328,16 @@ void LCD_show(int total,int big, int small){
 void send(int value, char const *ptr){
   client.add(ptr,value);
   client.send();
-  delay(500);
+  delay(100);
 }
 
-int recieve(void){
+int receive(void){
   int sw_on, sw_off, check;
   sw_on = client.get(DEVICE,SWITCH1);
   sw_off = client.get(DEVICE,SWITCH2);
-  client.send();
-  delay(500);
-  
+
+  delay(300);
+
   if((sw_off == OFF) && (sw_on == OFF)){
     return NOTHING;
   }
