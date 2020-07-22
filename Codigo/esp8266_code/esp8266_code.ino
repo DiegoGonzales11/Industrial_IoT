@@ -96,6 +96,7 @@ void LCD_show(int total,int big, int small);
 void pilots_control(int state);
 void rele_control(int state);
 void motor_control(int state);
+int pulsIn(void);
 
 //wifi
 void send(int value, char const *ptr);
@@ -212,13 +213,27 @@ void servo_control(int state){
     break;
   }
 }
+
+int pulsIn(void){
+  int time=0;
+  while(digitalRead(ULT_ECHO)==0){
+  }
+
+  while(digitalRead(ULT_ECHO)==1){
+    delayMicroseconds(1);
+    time++;
+  }
+
+  return time;
+}
+
 int ultrasonic_control(void){
   digitalWrite(ULT_TRIG,HIGH);
   delayMicroseconds(10);
   digitalWrite(ULT_TRIG,LOW);
 
   int time,distancia;
-  time = pulsIn(ULT_ECHO,HIGH);
+  time = pulsIn();
   distancia = time*0,01715;
   return distancia;
 }
