@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Atmel Studio Solution File, Format Version 11.00
+Project("{54F91283-7BC4-4236-8FF9-10F437C3AD48}") = "IoT_box", "IoT_box\IoT_box.cproj", "{DB127429-5F2A-448E-B934-F4017DB6A1CF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|AVR = Debug|AVR
+		Release|AVR = Release|AVR
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DB127429-5F2A-448E-B934-F4017DB6A1CF}.Debug|AVR.ActiveCfg = Debug|AVR
+		{DB127429-5F2A-448E-B934-F4017DB6A1CF}.Debug|AVR.Build.0 = Debug|AVR
+		{DB127429-5F2A-448E-B934-F4017DB6A1CF}.Release|AVR.ActiveCfg = Release|AVR
+		{DB127429-5F2A-448E-B934-F4017DB6A1CF}.Release|AVR.Build.0 = Release|AVR
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
