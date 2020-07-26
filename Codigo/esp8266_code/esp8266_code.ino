@@ -23,8 +23,8 @@ LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 #define ULT_TRIG  D8
 
 //wifi
-#define DEVICE  "5ccf7fd920e1"  
-#define SWITCH1  "sw_on"
+#define DEVICE  "5ccf7fd920e1" //LA DIRECCION DE TU CUENTA EN LA PLATAFORMA IBIDOTS
+#define SWITCH1  "sw_on"//
 #define SWITCH2  "sw_off"
 #define TOKEN  "BBFF-GJHTr6N0ao2jF2JaDduVNUIgHzRzRw"   
 #define WIFISSID "CLARO-B612-1B66"  
@@ -87,7 +87,6 @@ char *ubidot_total = "totalBox";
 
 //configuration
 void pin_configuration(void);
-
 void servo_control(int state);
 int ultrasonic_control(void);
 int check_ultrasonic(void);
@@ -218,11 +217,14 @@ void loop(){
   }
 }
 
+/////////////////////////////////////////////
+
 void pin_configuration(void){
   //Serial config
   Serial.begin(9600);
   //Wifi config
-  //client.wifiConnect(WIFISSID, PASSWORD);
+  client.wifiConnect(WIFISSID, PASSWORD);
+  //Pin config
   pinMode(ULT_TRIG,OUTPUT);
   pinMode(ULT_ECHO,INPUT);
   pinMode(RELE,OUTPUT);
@@ -237,43 +239,33 @@ void pin_configuration(void){
 
 void servo_control(int state){
   switch (state){
-  case GO:          //90 grades
+  case GO:          //rotate 90 degrees 
     analogWrite(SERVO,76);
     break;
-  case BACK:
+  case BACK:       //rotate -90 degrees
     analogWrite(SERVO,51);
     break;
-  case OFF:
+  case OFF:       //Turn off servo
     analogWrite(SERVO,0);
     break;
   }
 }
-
-int pulsIn(void){
-  int time=0;
-  while(digitalRead(ULT_ECHO)==0){
-  }
-
-  while(digitalRead(ULT_ECHO)==1){
-    delayMicroseconds(1);
-    time++;
-  }
-
-  return time;
-}
-
+/////////////// Distance acquisition by treating the "time" parameter/////////////////////////////
+ 
 int ultrasonic_control(void){
-  digitalWrite(ULT_TRIG,HIGH);
-  delayMicroseconds(10);
-  digitalWrite(ULT_TRIG,LOW);
+  digitalWrite(ULT_TRIG,HIGH);/////////////////////////////////
+  delayMicroseconds(10);     //Pulse of exitation 
+  digitalWrite(ULT_TRIG,LOW);/////////////////////////////////
 
   int time,distancia;
-  time = pulsIn();
-  distancia = time*0,01715;
+  time = pulseIn(ULT_ECO,HIGH);
+  distancia = time/58.2;//pulse width treatment to obtain the distance in centimeters
   return distancia;
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
-int check_box(void){
+///////////////we check what box size//////////////////////////////////////////////////////////////
+int check_box(void){ 
   int distance;
   distance = check_ultrasonic();
 
@@ -284,7 +276,9 @@ int check_box(void){
   else
     return NO_BOX;
 }
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////WE AVERAGE FIVE SAMPLES OF DISTANCES OBTAINED///////////////////////////////////
 int check_ultrasonic(void){
   int sample[5];
   int avrg;
@@ -299,7 +293,9 @@ int check_ultrasonic(void){
 
   return avrg/5;
 }
+////////////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////WE CONTROL THE STATE OF THE RED AND BLUE LEDS////////////////////////////////
 void pilots_control(int state){
   switch (state)
   {
@@ -314,7 +310,9 @@ void pilots_control(int state){
     break;
   }
 }
+////////////////////////////////////////////////////////////////////////////////////////////////
 
+/////////////////WE CONTROL THE STATE OF THE RELAY//////////////////////////////////////////////
 void rele_control(int state){
   if (state == ON)
     digitalWrite(RELE,LOW);
@@ -322,65 +320,82 @@ void rele_control(int state){
     digitalWrite(RELE,HIGH);
 }
 
+
+
 void motor_control(int state){
   if(state == ON)
     digitalWrite(MOTOR,HIGH);
   else
     digitalWrite(MOTOR,LOW);
 }
+////////////////////////////////////////////////////////////////////////////////////////////////
 
+///////////////WE ASSIGN MESSAGES//////////////////////////////////////////////////
 void LCD_init(void){
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(msg1);
+  lcd.print(msg1);//"Welcome to"
   lcd.setCursor(0,1);
-  lcd.print(msg2);
+  lcd.print(msg2);//"the factory"
   delay(2000);
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(msg3);
+  lcd.print(msg3);//"Please wait"
   lcd.setCursor(0,1);
-  lcd.print(msg4);
+  lcd.print(msg4);//"loading ..."
   delay(1000);
 }
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////WE ASSIGN THE MESSAGE//////////////////////////////////////////////////////////
 void LCD_stop(void){
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(msg8);
-  lcd.setCursor(0,1);
-  lcd.print(msg9);
+  lcd.print(msg8);//"Factory stopped"
+  lcd.setCursor(0,1); 
+  lcd.print(msg9);//"plase wait"
 }
-void LCD_go(void){
+////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+////////////////WE ASSIGN THE MESSAGE//////////////////////////////////////////////////////////
+ void LCD_go(void){
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(msg10);
+  lcd.print(msg10);//"Factory starting"
   lcd.setCursor(0,1);
-  lcd.print(msg9);
+  lcd.print(msg9);//"plase wait"
 }
+////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+////////////////WE ASSIGN THE MESSAGE//////////////////////////////////////////////////////////
 void LCD_show(int total,int big, int small){
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print(msg5);
+  lcd.print(msg5);//"Total box: "
   lcd.setCursor(11,0);
-  lcd.print(total);
+  lcd.print(total);//TOTAL BOXES
 
   lcd.setCursor(0,1);
-  lcd.print(msg6);
+  lcd.print(msg6);//"Big:"
   lcd.setCursor(5,1);
-  lcd.print(big);
+  lcd.print(big);//AMOUNT OF BIG BOXES
 
   lcd.setCursor(7,1);
-  lcd.print(msg7);
+  lcd.print(msg7);//"Sml:"
   lcd.setCursor(11,1);
-  lcd.print(small);
+  lcd.print(small);//AMOUNT OF SMALL BOXES
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+////////////////SENDING DATA TO THE UBIDOTS PLATFORM ///////////////////////////////////////////
 void send(int value, char const *ptr){
   client.add(ptr,value);
   client.send();
   delay(100);
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+////////////////SENDING DATA TO THE UBIDOTS PLATFORM ///////////////////////////////////////////
 int receive(void){
   Serial.println("receive");
   int sw_on, sw_off, check;
@@ -417,3 +432,4 @@ int receive(void){
     return NOTHING;
   }
 }
+////////////////////////////////////////////////////////////////////////////////////////////////
