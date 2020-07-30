@@ -23,12 +23,12 @@ LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 #define ULT_TRIG  D8
 
 //wifi
-#define DEVICE  "5ccf7fd920e1" //LA DIRECCION DE TU CUENTA EN LA PLATAFORMA IBIDOTS
+#define DEVICE  "5ccf7fd91701" //LA DIRECCION DE TU CUENTA EN LA PLATAFORMA IBIDOTS
 #define SWITCH1  "sw_on"//
 #define SWITCH2  "sw_off"
-#define TOKEN  "BBFF-GJHTr6N0ao2jF2JaDduVNUIgHzRzRw"   
-#define WIFISSID "CLARO-B612-1B66"  
-#define PASSWORD "1D282tF6TT"
+#define TOKEN  "BBFF-uhuuvMLx0B8BkrdbxHp9efBkKKb1bp"   
+#define WIFISSID "XIMENA"  
+#define PASSWORD "23984789" 
 
 Ubidots client(TOKEN);
 //pin macros
@@ -111,7 +111,7 @@ int flag_servo = 0; //1=big_box y 0 = small_box
 int flag_on = 0;
 int flag_off = 0;
 
-int i=0;
+//int i=0;
 
 void setup(){
   pin_configuration();
@@ -136,7 +136,7 @@ void loop(){
     pilots_control(ON);
     motor_control(ON);
 
-    /*
+    
     int aux_box;
 
     aux_box = check_box();
@@ -144,6 +144,7 @@ void loop(){
     {
     case BIG:
       big_box++;
+      flag_servo = 1;
       break;
     case SMALL:
       small_box++;
@@ -160,21 +161,25 @@ void loop(){
     if (flag_servo == 1){
       motor_control(OFF);
       servo_control(GO);
-      delay(500);
+      delay(2000);
+      servo_control(OFF);
+      delay(1000);
       servo_control(BACK);
-      delay(500);
+      delay(2000);
       servo_control(OFF);
       motor_control(ON);
       flag_servo = 0;
     }
-*/
+
     ///////////////////////////
-    
+    /*
     big_box = i;
     small_box = i+1;
     total_box = big_box + small_box;
-    i++;
+    i++;*/
     ///////////////////////////
+
+    //LCD_show(total_box,big_box,small_box);
     
     send(total_box,ubidot_total);
     send(big_box,ubidot_big);
@@ -240,10 +245,10 @@ void pin_configuration(void){
 void servo_control(int state){
   switch (state){
   case GO:          //rotate 90 degrees 
-    analogWrite(SERVO,76);
+    analogWrite(SERVO,100);
     break;
   case BACK:       //rotate -90 degrees
-    analogWrite(SERVO,51);
+    analogWrite(SERVO,76);
     break;
   case OFF:       //Turn off servo
     analogWrite(SERVO,0);
@@ -258,8 +263,12 @@ int ultrasonic_control(void){
   digitalWrite(ULT_TRIG,LOW);/////////////////////////////////
 
   int time,distancia;
-  time = pulseIn(ULT_ECO,HIGH);
+  time = pulseIn(ULT_ECHO,HIGH);
   distancia = time/58.2;//pulse width treatment to obtain the distance in centimeters
+
+  Serial.println("\nlectura");
+  Serial.println(distancia);
+  
   return distancia;
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -268,10 +277,10 @@ int ultrasonic_control(void){
 int check_box(void){ 
   int distance;
   distance = check_ultrasonic();
-
-  if(distance < 2)
+  
+  if(distance < 15)
     return BIG;
-  else if((distance >2) && (distance < 6))
+  else if((distance >15) && (distance < 25))
     return SMALL;
   else
     return NO_BOX;
@@ -281,7 +290,7 @@ int check_box(void){
 ////////////////WE AVERAGE FIVE SAMPLES OF DISTANCES OBTAINED///////////////////////////////////
 int check_ultrasonic(void){
   int sample[5];
-  int avrg;
+  int avrg=0;
 
   for(int i=0; i<5; i++){
     sample[i] = ultrasonic_control();
@@ -290,7 +299,8 @@ int check_ultrasonic(void){
   for(int i=0; i<5; i++){
     avrg = avrg + sample[i];
   }
-
+  Serial.println("\nAvg");
+  Serial.println(avrg);
   return avrg/5;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -315,9 +325,9 @@ void pilots_control(int state){
 /////////////////WE CONTROL THE STATE OF THE RELAY//////////////////////////////////////////////
 void rele_control(int state){
   if (state == ON)
-    digitalWrite(RELE,LOW);
-  else
     digitalWrite(RELE,HIGH);
+  else
+    digitalWrite(RELE,LOW);
 }
 
 
